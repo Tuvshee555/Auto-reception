@@ -11,52 +11,54 @@ export default async function handler(
   res: NextApiResponse,
 ) {
   if (req.method === "GET") {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
-    if (mode === "subscribe" && token === VERIFY)
-      return res.status(200).send(String(challenge));
-    return res.status(403).send("invalid verify");
+    const mode = req.query["hub.mode"] as string;
+    const token = req.query["hub.verify_token"] as string;
+    const challenge = req.query["hub.challenge"] as string;
+
+    console.log("VERIFY REQUEST:", { mode, token, challenge, VERIFY });
+
+    if (mode === "subscribe" && token === VERIFY) {
+      return res.status(200).send(challenge);
+    }
+
+    return res.status(403).send("Verification failed");
   }
 
   if (req.method === "POST") {
-    const body = req.body;
     try {
+      const body = req.body;
+
       if (body.object === "page") {
         for (const entry of body.entry || []) {
           for (const event of entry.messaging || []) {
             if (event.message && event.sender) {
               const senderId = event.sender.id;
               const text = event.message.text || "";
-              sendTypingOn(senderId).catch(() => {});
-              const db = await getDb();
-              const settings =
-                (await db.collection("settings").findOne({})) || {};
-              const systemPrompt = `You are a Mongolian receptionist for ${(settings as any).name || "the clinic"}. Answer in Mongolian. Use the provided services and hours when relevant. If user wants to book, ask for date, time, name and phone.`;
-              const aiReply = await askGemini(`${systemPrompt}\nUser: ${text}`);
-              const lower = text.toLowerCase();
-              const wantsBooking =
-                /tsag|tsag awah|tsag avah|avah|book| захиал|захиалгаа/i.test(
-                  lower,
-                );
-              if (wantsBooking) {
-                await db.collection("bookings").insertOne({
-                  senderId,
-                  rawMessage: text,
-                  status: "pending",
-                  createdAt: new Date(),
-                });
+
+              await sendTypingOn(senderId).catch(() => {});
+
+              let aiReply = "Сайн байна уу! Түр хүлээнэ үү.";
+
+              try {
+                const db = await getDb();
+                const settings =
+                  (await db.collection("settings").findOne({})) || {};
+                const systemPrompt = `You are a Mongolian receptionist for ${(settings as any).name || "the clinic"}.`;
+                aiReply = await askGemini(`${systemPrompt}\nUser: ${text}`);
+              } catch (aiErr) {
+                console.error("AI error:", aiErr);
               }
+
               await sendTextMessage(senderId, aiReply).catch(() => {});
             }
           }
         }
-        return res.status(200).json({ ok: true });
       }
-      return res.status(404).end();
+
+      return res.status(200).json({ ok: true });
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({ error: "server error" });
+      console.error("Webhook crash:", err);
+      return res.status(200).json({ ok: true }); // NEVER 500 for webhook
     }
   }
 
