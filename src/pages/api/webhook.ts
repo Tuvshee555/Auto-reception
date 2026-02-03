@@ -6,10 +6,10 @@ import { askGemini } from "../../lib/gemini";
 import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
 
 const VERIFY = process.env.FACEBOOK_VERIFY_TOKEN || "verify";
-const APP_SECRET = process.env.FACEBOOK_APP_SECRET || "";
+const APP_SECRET = process.env.FACEBOOK_APP_SECRET;
 if (!APP_SECRET) {
-  console.warn(
-    "FACEBOOK_APP_SECRET not set — webhook signature verification will fail"
+  console.error(
+    "FACEBOOK_APP_SECRET not set — webhook POSTs will be rejected to avoid insecure signature verification"
   );
 }
 
@@ -50,6 +50,12 @@ export default async function handler(
 
   if (req.method === "POST") {
     try {
+      if (!APP_SECRET) {
+        console.error(
+          "Refusing to process POST: FACEBOOK_APP_SECRET is not configured."
+        );
+        return res.status(503).send("Server misconfigured");
+      }
       // Read raw body to verify signature
       const raw = await getRawBody(req);
       const sigHeader = (req.headers["x-hub-signature-256"] || "") as string;
