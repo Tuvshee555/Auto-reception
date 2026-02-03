@@ -6,12 +6,14 @@ export default function DemoChat() {
     { from: "user" | "bot"; text: string }[]
   >([]);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
 
   async function send() {
-    if (!input) return;
+    if (!input || sending) return;
     setMessages((s) => [...s, { from: "user", text: input }]);
     const text = input;
     setInput("");
+    setSending(true);
     try {
       const r = await fetch("/api/demo", {
         method: "POST",
@@ -22,6 +24,8 @@ export default function DemoChat() {
       setMessages((s) => [...s, { from: "bot", text: j.reply || "..." }]);
     } catch (e) {
       setMessages((s) => [...s, { from: "bot", text: "server error" }]);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -45,9 +49,20 @@ export default function DemoChat() {
           onChange={(e) => setInput(e.target.value)}
           className="flex-1 p-2 border rounded"
           placeholder="shudnii tsag avah..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          disabled={sending}
         />
-        <button onClick={send} className="p-2 border rounded">
-          Send
+        <button
+          onClick={send}
+          className="p-2 border rounded"
+          disabled={sending}
+        >
+          {sending ? "Sending..." : "Send"}
         </button>
       </div>
     </div>
