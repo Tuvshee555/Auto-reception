@@ -13,11 +13,7 @@ export default function Admin() {
     async function check() {
       try {
         const r = await fetch("/api/admin/login", { method: "GET" });
-        if (r.ok) {
-          setStatus("unlocked");
-        } else {
-          setStatus("locked");
-        }
+        setStatus(r.ok ? "unlocked" : "locked");
       } catch {
         setStatus("locked");
       }
@@ -48,10 +44,10 @@ export default function Admin() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl mb-4">Admin — Business Settings</h1>
+      <h1 className="text-2xl mb-4">Admin â€“ Business Settings</h1>
 
       {status === "checking" ? (
-        <div>Checking access…</div>
+        <div>Checking accessâ€¦</div>
       ) : status === "locked" ? (
         <form onSubmit={handleLogin} className="space-y-3 max-w-md">
           <label>Enter admin access token</label>
@@ -61,7 +57,7 @@ export default function Admin() {
             className="w-full p-2 border rounded"
             placeholder="Admin token"
           />
-          {error ? <div className="text-red-600">{error}</div> : null}
+          {error && <div className="text-red-600">{error}</div>}
           <button className="px-4 py-2 border rounded">Unlock</button>
         </form>
       ) : (
