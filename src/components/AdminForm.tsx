@@ -9,6 +9,7 @@ export default function AdminForm() {
     hours: "",
     services: "",
     prices: "",
+    links: "",
   });
 
   const [saved, setSaved] = useState(false);
@@ -80,6 +81,13 @@ export default function AdminForm() {
         value={form.prices}
         onChange={handleChange}
         placeholder="Prices"
+        className="w-full p-2 border rounded"
+      />
+      <textarea
+        name="links"
+        value={form.links}
+        onChange={handleChange}
+        placeholder="Links"
         className="w-full p-2 border rounded"
       />
 

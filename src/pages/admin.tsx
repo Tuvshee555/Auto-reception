@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import AdminForm from "../components/AdminForm";
-import BookingList from "../components/BookingList";
 
 export default function Admin() {
   const [tokenInput, setTokenInput] = useState("");
@@ -61,14 +60,11 @@ export default function Admin() {
           <button className="px-4 py-2 border rounded">Unlock</button>
         </form>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div>
             <AdminForm />
           </div>
           <div>
-            <BookingList />
-          </div>
-          <div className="md:col-span-2">
             <button
               className="px-3 py-1 border rounded text-sm"
               onClick={handleLogout}

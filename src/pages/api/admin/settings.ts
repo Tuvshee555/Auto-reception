@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getDb } from "../../../lib/mongo";
 import { checkAdminAuth } from "../../../lib/adminAuth";
+import { readBusinessData, writeBusinessData } from "../../../lib/businessData";
 
 export default async function handler(
   req: NextApiRequest,
@@ -8,19 +8,21 @@ export default async function handler(
 ) {
   if (!checkAdminAuth(req, res)) return;
 
-  const db = await getDb();
-
   if (req.method === "GET") {
-    const settings = (await db.collection("settings").findOne({})) || {};
-    return res.status(200).json(settings);
+    const data = await readBusinessData();
+    return res.status(200).json(data.business || {});
   }
 
   if (req.method === "POST") {
     const data = req.body;
-
-    await db
-      .collection("settings")
-      .updateOne({}, { $set: data }, { upsert: true });
+    const current = await readBusinessData();
+    await writeBusinessData({
+      ...current,
+      business: {
+        ...(current.business || {}),
+        ...(data || {}),
+      },
+    });
 
     return res.status(200).json({ ok: true });
   }
