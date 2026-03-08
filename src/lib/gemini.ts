@@ -25,8 +25,9 @@ export async function askGemini(prompt: string) {
   }
 
   const data = await res.json();
-  return (
+  const raw =
     data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-    "?????????, ???????????."
-  );
+    "Уучлаарай, систем түр алдаатай байна.";
+  return fixMojibake(raw);
 }
+import { fixMojibake } from "./encoding";

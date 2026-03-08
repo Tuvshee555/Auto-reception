@@ -4,6 +4,7 @@ import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
 import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
+import { fixMojibake } from "../../lib/encoding";
 
 const VERIFY = process.env.FACEBOOK_VERIFY_TOKEN;
 
@@ -37,7 +38,7 @@ export default async function handler(
             // Rate limit
             const limit = rateLimit(`fb:${senderId}`, 20, 10 * 60 * 1000);
             if (!limit.allowed) {
-              await sendTextMessage(senderId, "Ð¢Ò¯Ñ€ Ñ…Ò¯Ð»ÑÑÐ½Ñ Ò¯Ò¯, Ð´Ð°Ñ€Ð°Ð° Ð¾Ñ€Ð¾Ð»Ð´Ð¾Ð½Ð¾ ÑƒÑƒ.");
+              await sendTextMessage(senderId, "Түр хүлээнэ үү, дараа оролдоно уу.");
               continue;
             }
 
@@ -54,18 +55,19 @@ export default async function handler(
               userText: text,
             });
 
-            let aiReply = "Ð¡Ð°Ð¹Ð½ Ð±Ð°Ð¹Ð½Ð° ÑƒÑƒ!";
+            let aiReply = "Сайн байна уу!";
 
             try {
               aiReply = await askGemini(prompt);
             } catch {
-              aiReply = "Ð£ÑƒÑ‡Ð»Ð°Ð°Ñ€Ð°Ð¹, ÑÐ¸ÑÑ‚ÐµÐ¼ Ñ‚Ò¯Ñ€ Ð°Ð»Ð´Ð°Ð°Ñ‚Ð°Ð¹ Ð±Ð°Ð¹Ð½Ð°.";
+              aiReply = "Уучлаарай, систем түр алдаатай байна.";
             }
 
+            const safeReply = fixMojibake(aiReply);
             appendMessage(senderId, "user", text);
-            appendMessage(senderId, "assistant", aiReply);
+            appendMessage(senderId, "assistant", safeReply);
 
-            await sendTextMessage(senderId, aiReply);
+            await sendTextMessage(senderId, safeReply);
           }
         }
       }

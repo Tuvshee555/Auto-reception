@@ -4,6 +4,7 @@ import { askGemini } from "../../lib/gemini";
 import { getClientKey, rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
 import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
+import { fixMojibake } from "../../lib/encoding";
 
 export default async function handler(
   req: NextApiRequest,
@@ -33,7 +34,7 @@ export default async function handler(
       history,
       userText: text,
     });
-    const reply = await askGemini(prompt);
+    const reply = fixMojibake(await askGemini(prompt));
     appendMessage(sessionId, "user", text);
     appendMessage(sessionId, "assistant", reply);
     return res.status(200).json({ reply });
