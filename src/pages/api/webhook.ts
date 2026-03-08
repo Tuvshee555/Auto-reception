@@ -3,6 +3,7 @@ import { askGemini } from "../../lib/gemini";
 import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
+import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
 
 const VERIFY = process.env.FACEBOOK_VERIFY_TOKEN;
 
@@ -44,29 +45,25 @@ export default async function handler(
 
             // Load business settings for AI
             const { systemPrompt, business } = await readBusinessData();
-
-            const systemPromptText = `
-${systemPrompt || "You are a Mongolian AI receptionist."}
-
-Business info:
-Name: ${business?.name || "Clinic"}
-Phone: ${business?.phone || "N/A"}
-Address: ${business?.address || "N/A"}
-Hours: ${business?.hours || "N/A"}
-Services: ${business?.services || "N/A"}
-Prices: ${business?.prices || "N/A"}
-Links: ${business?.links || "N/A"}
-
-Answer in Mongolian.
-`;
+            const history = getHistory(senderId);
+            const prompt = buildPrompt({
+              systemPrompt:
+                systemPrompt || "You are a Mongolian AI receptionist.",
+              business: business || {},
+              history,
+              userText: text,
+            });
 
             let aiReply = "Ð¡Ð°Ð¹Ð½ Ð±Ð°Ð¹Ð½Ð° ÑƒÑƒ!";
 
             try {
-              aiReply = await askGemini(`${systemPromptText}\nUser: ${text}`);
+              aiReply = await askGemini(prompt);
             } catch {
               aiReply = "Ð£ÑƒÑ‡Ð»Ð°Ð°Ñ€Ð°Ð¹, ÑÐ¸ÑÑ‚ÐµÐ¼ Ñ‚Ò¯Ñ€ Ð°Ð»Ð´Ð°Ð°Ñ‚Ð°Ð¹ Ð±Ð°Ð¹Ð½Ð°.";
             }
+
+            appendMessage(senderId, "user", text);
+            appendMessage(senderId, "assistant", aiReply);
 
             await sendTextMessage(senderId, aiReply);
           }

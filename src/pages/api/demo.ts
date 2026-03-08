@@ -2,6 +2,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { askGemini } from "../../lib/gemini";
 import { getClientKey, rateLimit } from "../../lib/rateLimit";
+import { readBusinessData } from "../../lib/businessData";
+import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,8 +23,19 @@ export default async function handler(
   }
 
   try {
-    const systemPrompt = `You are a helpful Mongolian receptionist. Answer concisely in Mongolian. If user asks to book, ask for date, time, name, and phone. Use only info given.`;
-    const reply = await askGemini(`${systemPrompt}\nUser: ${text}`);
+    const { systemPrompt, business } = await readBusinessData();
+    const sessionId = `demo:${getClientKey(req)}`;
+    const history = getHistory(sessionId);
+    const prompt = buildPrompt({
+      systemPrompt:
+        systemPrompt || "You are a helpful Mongolian receptionist.",
+      business: business || {},
+      history,
+      userText: text,
+    });
+    const reply = await askGemini(prompt);
+    appendMessage(sessionId, "user", text);
+    appendMessage(sessionId, "assistant", reply);
     return res.status(200).json({ reply });
   } catch (err: any) {
     console.error(err);
