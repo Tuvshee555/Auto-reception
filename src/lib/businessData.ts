@@ -7,6 +7,10 @@ export type BusinessSettings = {
   address?: string;
   hours?: string;
   services?: string;
+  products?: string;
+  sizes?: string;
+  shipping?: string;
+  returns?: string;
   prices?: string;
   links?: string;
 };
@@ -20,15 +24,19 @@ const DATA_PATH = path.join(process.cwd(), "data", "business.json");
 
 const DEFAULT_DATA: BusinessDataFile = {
   systemPrompt:
-    "Be friendly. Provide accurate business info and help users book appointments.",
+    "You are a friendly Mongolian customer support assistant for a clothing brand. Answer briefly and clearly. Use the business data below when asked about products, prices, sizes, shipping, returns, or contact info. If something is not in the business data, say you are not sure and offer to connect with a human.",
   business: {
-    name: "Clinic",
-    phone: "77777777",
-    address: "ulaanbatar",
-    hours: "9:00-18:00",
-    services: "help with health",
-    prices: "500 to 1000",
-    links: "https://example.com",
+    name: "Your Clothing Brand",
+    phone: "+976 0000 0000",
+    address: "Ulaanbaatar, Mongolia",
+    hours: "Daily 10:00-20:00",
+    services: "Product info, sizes, shipping, returns, order help",
+    products: "T-shirt, hoodie, jacket, accessories",
+    sizes: "S, M, L, XL (some items XXL)",
+    shipping: "Ulaanbaatar same-day, countryside 2-4 days",
+    returns: "7 days with receipt, unused items only",
+    prices: "T-shirt: 49,000 MNT; Hoodie: 129,000 MNT; Jacket: 199,000 MNT",
+    links: "Instagram: https://instagram.com/yourbrand | Store: https://yourbrand.com",
   },
 };
 

@@ -45,6 +45,10 @@ export function buildPrompt(options: {
     address?: string;
     hours?: string;
     services?: string;
+    products?: string;
+    sizes?: string;
+    shipping?: string;
+    returns?: string;
     prices?: string;
     links?: string;
   };
@@ -61,6 +65,7 @@ export function buildPrompt(options: {
   lines.push("- Ask only for missing items and do not repeat the same question if the user has not provided new info.");
   lines.push("- If the user did not ask to book, do not ask for booking details.");
   lines.push("- Use only the business info below when asked about it.");
+  lines.push("- If the user asks about products, include the website link from Links.");
   lines.push("");
   lines.push("Business info:");
   lines.push(`Name: ${business?.name || "N/A"}`);
@@ -68,6 +73,10 @@ export function buildPrompt(options: {
   lines.push(`Address: ${business?.address || "N/A"}`);
   lines.push(`Hours: ${business?.hours || "N/A"}`);
   lines.push(`Services: ${business?.services || "N/A"}`);
+  lines.push(`Products: ${business?.products || "N/A"}`);
+  lines.push(`Sizes: ${business?.sizes || "N/A"}`);
+  lines.push(`Shipping: ${business?.shipping || "N/A"}`);
+  lines.push(`Returns: ${business?.returns || "N/A"}`);
   lines.push(`Prices: ${business?.prices || "N/A"}`);
   lines.push(`Links: ${business?.links || "N/A"}`);
   lines.push("");
