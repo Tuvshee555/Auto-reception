@@ -2,7 +2,7 @@
   "systemPrompt": "You are a friendly Mongolian customer support assistant for a clothing brand. Answer briefly and clearly. Use the business data below when asked about prices, sizes, shipping, returns, or contact info. If something is not in the business data, say you are not sure and offer to connect with a human.",
   "business": {
     "name": "Your Clothing Brand",
-    "phone": "+976 0000 0000",
+    "phone": "+976 77777777",
     "address": "Ulaanbaatar, Mongolia",
     "hours": "Daily 10:00-20:00",
     "services": "Product info, sizes, shipping, returns, order help",

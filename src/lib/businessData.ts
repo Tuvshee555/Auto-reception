@@ -23,7 +23,7 @@ const DEFAULT_DATA: BusinessDataFile = {
     "Be friendly. Provide accurate business info and help users book appointments.",
   business: {
     name: "Clinic",
-    phone: "86868686",
+    phone: "77777777",
     address: "ulaanbatar",
     hours: "9:00-18:00",
     services: "help with health",
