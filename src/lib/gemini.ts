@@ -21,6 +21,11 @@ export async function askGemini(prompt: string) {
 
   if (!res.ok) {
     const txt = await res.text();
+    console.error("Gemini error", {
+      status: res.status,
+      statusText: res.statusText,
+      body: txt,
+    });
     throw new Error(`Gemini error: ${res.status} ${txt}`);
   }
 

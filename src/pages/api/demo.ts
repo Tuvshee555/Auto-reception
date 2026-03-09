@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextApiRequest, NextApiResponse } from "next";
-import { askGemini } from "../../lib/gemini";
+import { askOpenAI } from "../../lib/openai";
 import { getClientKey, rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
 import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
@@ -34,7 +34,7 @@ export default async function handler(
       history,
       userText: text,
     });
-    const reply = fixMojibake(await askGemini(prompt));
+    const reply = fixMojibake(await askOpenAI(prompt));
     appendMessage(sessionId, "user", text);
     appendMessage(sessionId, "assistant", reply);
     return res.status(200).json({ reply });

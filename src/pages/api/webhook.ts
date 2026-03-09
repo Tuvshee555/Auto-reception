@@ -1,5 +1,5 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
-import { askGemini } from "../../lib/gemini";
+import { askOpenAI } from "../../lib/openai";
 import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
@@ -58,7 +58,7 @@ export default async function handler(
             let aiReply = "Сайн байна уу!";
 
             try {
-              aiReply = await askGemini(prompt);
+              aiReply = await askOpenAI(prompt);
             } catch {
               aiReply = "Уучлаарай, систем түр алдаатай байна.";
             }
