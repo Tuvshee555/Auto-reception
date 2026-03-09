@@ -3,7 +3,6 @@ import { askOpenAI } from "../../lib/openai";
 import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
 import {
   sendTextMessage as sendIgTextMessage,
-  sendTypingOn as sendIgTypingOn,
 } from "../../lib/instagram";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
@@ -23,6 +22,7 @@ async function handleMessage(
   platform: Platform,
   senderId: string,
   text: string,
+  igUserId?: string | null,
 ) {
   const limit = rateLimit(
     `${platform === "facebook" ? "fb" : "ig"}:${senderId}`,
@@ -32,12 +32,11 @@ async function handleMessage(
   if (!limit.allowed) {
     const waitMsg = "Түр хүлээнэ үү, дараа оролдоно уу.";
     if (platform === "facebook") await sendTextMessage(senderId, waitMsg);
-    else await sendIgTextMessage(senderId, waitMsg);
+    else await sendIgTextMessage(igUserId || "", senderId, waitMsg);
     return;
   }
 
   if (platform === "facebook") await sendTypingOn(senderId);
-  else await sendIgTypingOn(senderId);
 
   const { systemPrompt, business } = await readBusinessData();
   const history = getHistory(senderId);
@@ -61,7 +60,7 @@ async function handleMessage(
   appendMessage(senderId, "assistant", safeReply);
 
   if (platform === "facebook") await sendTextMessage(senderId, safeReply);
-  else await sendIgTextMessage(senderId, safeReply);
+  else await sendIgTextMessage(igUserId || "", senderId, safeReply);
 }
 
 export default async function handler(
@@ -95,7 +94,12 @@ export default async function handler(
             const text = (event.message.text || "").trim();
             if (!text) continue;
 
-            await handleMessage(platform, senderId, text);
+            const igUserId = platform === "instagram" ? entry.id : undefined;
+            if (platform === "instagram" && !igUserId) {
+              console.error("Instagram entry.id missing; cannot reply.");
+              continue;
+            }
+            await handleMessage(platform, senderId, text, igUserId);
           }
         }
       }
