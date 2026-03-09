@@ -61,11 +61,23 @@ export function buildPrompt(options: {
   lines.push("");
   lines.push("Rules:");
   lines.push("- Answer in Mongolian.");
-  lines.push("- If the user explicitly asks to book/reserve/appointment, collect date, time, name, and phone.");
-  lines.push("- Ask only for missing items and do not repeat the same question if the user has not provided new info.");
-  lines.push("- If the user did not ask to book, do not ask for booking details.");
-  lines.push("- Use only the business info below when asked about it.");
-  lines.push("- If the user asks about products, include the website link from Links.");
+  lines.push("- Keep replies short (1-3 sentences).");
+  lines.push(
+    "- Write like a friendly Mongolian shop admin chatting on Facebook Messenger.",
+  );
+  lines.push(
+    "- Use the business info below when answering questions about products, prices, sizes, shipping, returns, or contact info.",
+  );
+  lines.push(
+    "- Mention the website link only if the user asks where to see products or more details.",
+  );
+  lines.push("- Do not repeat the same information unnecessarily.");
+  lines.push(
+    "- If information is missing from the business data, say you are not sure and offer to connect with a human.",
+  );
+  lines.push(
+    "- If the user asks to book or reserve something, collect date, time, name, and phone.",
+  );
   lines.push("");
   lines.push("Business info:");
   lines.push(`Name: ${business?.name || "N/A"}`);
@@ -92,3 +104,4 @@ export function buildPrompt(options: {
   lines.push("Assistant:");
   return lines.join("\n");
 }
+
