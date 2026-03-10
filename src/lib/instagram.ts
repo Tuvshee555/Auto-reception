@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 
-const IG_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
+// const IG_TOKEN = process.env.INSTAGRAM_PAGE_ACCESS_TOKEN;
+const IG_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
 function requireToken() {
   if (!IG_TOKEN) throw new Error("INSTAGRAM_PAGE_ACCESS_TOKEN not set");
