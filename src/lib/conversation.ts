@@ -62,6 +62,8 @@ export function buildPrompt(options: {
   lines.push("Rules:");
   lines.push("- Answer in Mongolian.");
   lines.push("- Keep replies short (1-3 sentences).");
+  lines.push("- Use clear, natural Mongolian with correct spelling and grammar.");
+  lines.push("- Send exactly one reply message for each user message.");
   lines.push(
     "- Write like a friendly Mongolian shop admin chatting on Facebook Messenger.",
   );

@@ -2,7 +2,7 @@
 import { fixMojibake } from "./encoding";
 
 const KEY = process.env.OPENAI_API_KEY;
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 if (!KEY) throw new Error("OPENAI_API_KEY not set");
 

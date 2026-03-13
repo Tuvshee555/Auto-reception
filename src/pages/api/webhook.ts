@@ -12,8 +12,40 @@ const IG_VERIFY = process.env.INSTAGRAM_VERIFY_TOKEN;
 
 type Platform = "facebook" | "instagram";
 
+const PROCESSED_EVENT_TTL_MS = 2 * 60 * 1000;
+const processedEvents = new Map<string, number>();
+const activeConversations = new Set<string>();
+
 function verifyToken(token: unknown) {
   return token === FB_VERIFY || token === IG_VERIFY;
+}
+
+function pruneProcessedEvents() {
+  const now = Date.now();
+  for (const [key, timestamp] of processedEvents.entries()) {
+    if (now - timestamp > PROCESSED_EVENT_TTL_MS) {
+      processedEvents.delete(key);
+    }
+  }
+}
+
+function buildEventKey(
+  platform: Platform,
+  senderId: string,
+  event: { message?: { mid?: string; text?: string } },
+) {
+  const mid = event.message?.mid?.trim();
+  if (mid) return `${platform}:mid:${mid}`;
+
+  const normalizedText = (event.message?.text || "").trim().toLowerCase();
+  return `${platform}:fallback:${senderId}:${normalizedText}`;
+}
+
+function markEventProcessed(key: string) {
+  pruneProcessedEvents();
+  if (processedEvents.has(key)) return false;
+  processedEvents.set(key, Date.now());
+  return true;
 }
 
 async function handleMessage(
@@ -93,13 +125,33 @@ export default async function handler(
             const senderId = event.sender.id;
             const text = (event.message.text || "").trim();
             if (!text) continue;
+            const eventKey = buildEventKey(platform, senderId, event);
+            if (!markEventProcessed(eventKey)) {
+              console.log("Skipping duplicate webhook event", { platform, eventKey });
+              continue;
+            }
 
             const igUserId = platform === "instagram" ? entry.id : undefined;
             if (platform === "instagram" && !igUserId) {
               console.error("Instagram entry.id missing; cannot reply.");
               continue;
             }
-            await handleMessage(platform, senderId, text, igUserId);
+
+            const conversationKey = `${platform}:${senderId}`;
+            if (activeConversations.has(conversationKey)) {
+              console.log("Skipping overlapping conversation event", {
+                platform,
+                senderId,
+              });
+              continue;
+            }
+
+            activeConversations.add(conversationKey);
+            try {
+              await handleMessage(platform, senderId, text, igUserId);
+            } finally {
+              activeConversations.delete(conversationKey);
+            }
           }
         }
       }
