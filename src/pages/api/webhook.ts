@@ -1,9 +1,7 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import { askOpenAI } from "../../lib/openai";
 import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
-import {
-  sendTextMessage as sendIgTextMessage,
-} from "../../lib/instagram";
+import { sendTextMessage as sendIgTextMessage } from "../../lib/instagram";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
 import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
@@ -81,6 +79,8 @@ export default async function handler(
   if (req.method === "POST") {
     try {
       const body = req.body;
+
+      console.log("WEBHOOK BODY:", JSON.stringify(body, null, 2));
 
       if (body.object === "page" || body.object === "instagram") {
         const platform: Platform =
