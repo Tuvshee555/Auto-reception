@@ -5,6 +5,7 @@ import { getClientKey, rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
 import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
 import { fixMojibake } from "../../lib/encoding";
+import { sanitizeAssistantReply } from "../../lib/reply";
 
 export default async function handler(
   req: NextApiRequest,
@@ -34,7 +35,7 @@ export default async function handler(
       history,
       userText: text,
     });
-    const reply = fixMojibake(await askOpenAI(prompt));
+    const reply = sanitizeAssistantReply(fixMojibake(await askOpenAI(prompt)));
     appendMessage(sessionId, "user", text);
     appendMessage(sessionId, "assistant", reply);
     return res.status(200).json({ reply });

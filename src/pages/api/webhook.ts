@@ -6,6 +6,7 @@ import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
 import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
 import { fixMojibake } from "../../lib/encoding";
+import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 
 const FB_VERIFY = process.env.FACEBOOK_VERIFY_TOKEN;
 const IG_VERIFY = process.env.INSTAGRAM_VERIFY_TOKEN;
@@ -13,8 +14,11 @@ const IG_VERIFY = process.env.INSTAGRAM_VERIFY_TOKEN;
 type Platform = "facebook" | "instagram";
 
 const PROCESSED_EVENT_TTL_MS = 2 * 60 * 1000;
+const RECENT_TEXT_TTL_MS = 20 * 1000;
 const processedEvents = new Map<string, number>();
 const activeConversations = new Set<string>();
+const recentIncomingTexts = new Map<string, number>();
+const recentReplies = new Map<string, { text: string; timestamp: number }>();
 
 function verifyToken(token: unknown) {
   return token === FB_VERIFY || token === IG_VERIFY;
@@ -25,6 +29,18 @@ function pruneProcessedEvents() {
   for (const [key, timestamp] of processedEvents.entries()) {
     if (now - timestamp > PROCESSED_EVENT_TTL_MS) {
       processedEvents.delete(key);
+    }
+  }
+
+  for (const [key, timestamp] of recentIncomingTexts.entries()) {
+    if (now - timestamp > RECENT_TEXT_TTL_MS) {
+      recentIncomingTexts.delete(key);
+    }
+  }
+
+  for (const [key, value] of recentReplies.entries()) {
+    if (now - value.timestamp > RECENT_TEXT_TTL_MS) {
+      recentReplies.delete(key);
     }
   }
 }
@@ -45,6 +61,22 @@ function markEventProcessed(key: string) {
   pruneProcessedEvents();
   if (processedEvents.has(key)) return false;
   processedEvents.set(key, Date.now());
+  return true;
+}
+
+function normalizeText(text: string) {
+  return text.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function markRecentIncomingText(
+  platform: Platform,
+  senderId: string,
+  text: string,
+) {
+  pruneProcessedEvents();
+  const key = `${platform}:${senderId}:${normalizeText(text)}`;
+  if (recentIncomingTexts.has(key)) return false;
+  recentIncomingTexts.set(key, Date.now());
   return true;
 }
 
@@ -69,7 +101,8 @@ async function handleMessage(
   if (platform === "facebook") await sendTypingOn(senderId);
 
   const { systemPrompt, business } = await readBusinessData();
-  const history = getHistory(senderId);
+  const sessionId = `${platform}:${senderId}`;
+  const history = getHistory(sessionId);
   const prompt = buildPrompt({
     systemPrompt: systemPrompt || "You are a Mongolian AI receptionist.",
     business: business || {},
@@ -85,9 +118,19 @@ async function handleMessage(
     aiReply = "Уучлаарай, систем түр алдаатай байна.";
   }
 
-  const safeReply = fixMojibake(aiReply);
-  appendMessage(senderId, "user", text);
-  appendMessage(senderId, "assistant", safeReply);
+  const safeReply = sanitizeAssistantReply(fixMojibake(aiReply));
+  const recentReplyKey = `${platform}:${senderId}`;
+  const lastReply = recentReplies.get(recentReplyKey);
+
+  appendMessage(sessionId, "user", text);
+
+  if (lastReply && isDuplicateReply(lastReply.text, safeReply)) {
+    console.log("Skipping duplicate outbound reply", { platform, senderId });
+    return;
+  }
+
+  appendMessage(sessionId, "assistant", safeReply);
+  recentReplies.set(recentReplyKey, { text: safeReply, timestamp: Date.now() });
 
   if (platform === "facebook") await sendTextMessage(senderId, safeReply);
   else await sendIgTextMessage(igUserId || "", senderId, safeReply);
@@ -128,6 +171,10 @@ export default async function handler(
             const eventKey = buildEventKey(platform, senderId, event);
             if (!markEventProcessed(eventKey)) {
               console.log("Skipping duplicate webhook event", { platform, eventKey });
+              continue;
+            }
+            if (!markRecentIncomingText(platform, senderId, text)) {
+              console.log("Skipping repeated inbound text", { platform, senderId });
               continue;
             }
 
