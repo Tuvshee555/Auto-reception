@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
-const PAGE_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-if (!PAGE_TOKEN) throw new Error("FACEBOOK_PAGE_ACCESS_TOKEN not set");
+const PAGE_TOKEN = process.env.ACCESS_TOKEN;
+if (!PAGE_TOKEN) throw new Error("ACCESS_TOKEN not set");
 
 export async function sendTextMessage(recipientId: string, text: string) {
   const res = await fetch(

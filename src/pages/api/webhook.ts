@@ -7,12 +7,15 @@ import {
 } from "../../lib/instagram";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
-import { appendMessage, buildMessages, getHistory } from "../../lib/conversation";
+import {
+  appendMessage,
+  buildMessages,
+  getHistory,
+} from "../../lib/conversation";
 import { fixMojibake } from "../../lib/encoding";
 import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 
-const FB_VERIFY = process.env.FACEBOOK_VERIFY_TOKEN;
-const IG_VERIFY = process.env.INSTAGRAM_VERIFY_TOKEN;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 type Platform = "facebook" | "instagram";
 
@@ -24,7 +27,7 @@ const recentIncomingTexts = new Map<string, number>();
 const recentReplies = new Map<string, { text: string; timestamp: number }>();
 
 function verifyToken(token: unknown) {
-  return token === FB_VERIFY || token === IG_VERIFY;
+  return token === VERIFY_TOKEN;
 }
 
 function pruneProcessedEvents() {
@@ -102,7 +105,8 @@ async function handleMessage(
   const sessionId = `${platform}:${senderId}`;
   const history = getHistory(sessionId);
   const { system, messages } = buildMessages({
-    systemPrompt: systemPrompt || "You are a friendly Mongolian AI receptionist.",
+    systemPrompt:
+      systemPrompt || "You are a friendly Mongolian AI receptionist.",
     business: business || {},
     history,
     userText: text,
@@ -170,11 +174,17 @@ export default async function handler(
 
             const eventKey = buildEventKey(platform, senderId, event);
             if (!markEventProcessed(eventKey)) {
-              console.log("Skipping duplicate webhook event", { platform, eventKey });
+              console.log("Skipping duplicate webhook event", {
+                platform,
+                eventKey,
+              });
               continue;
             }
             if (!markRecentIncomingText(platform, senderId, text)) {
-              console.log("Skipping repeated inbound text", { platform, senderId });
+              console.log("Skipping repeated inbound text", {
+                platform,
+                senderId,
+              });
               continue;
             }
 
