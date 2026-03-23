@@ -1,10 +1,13 @@
-﻿import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { askOpenAI } from "../../lib/openai";
 import { sendTextMessage, sendTypingOn } from "../../lib/messenger";
-import { sendTextMessage as sendIgTextMessage } from "../../lib/instagram";
+import {
+  sendTextMessage as sendIgTextMessage,
+  sendTypingOn as sendIgTypingOn,
+} from "../../lib/instagram";
 import { rateLimit } from "../../lib/rateLimit";
 import { readBusinessData } from "../../lib/businessData";
-import { appendMessage, buildPrompt, getHistory } from "../../lib/conversation";
+import { appendMessage, buildMessages, getHistory } from "../../lib/conversation";
 import { fixMojibake } from "../../lib/encoding";
 import { isDuplicateReply, sanitizeAssistantReply } from "../../lib/reply";
 
@@ -27,21 +30,13 @@ function verifyToken(token: unknown) {
 function pruneProcessedEvents() {
   const now = Date.now();
   for (const [key, timestamp] of processedEvents.entries()) {
-    if (now - timestamp > PROCESSED_EVENT_TTL_MS) {
-      processedEvents.delete(key);
-    }
+    if (now - timestamp > PROCESSED_EVENT_TTL_MS) processedEvents.delete(key);
   }
-
   for (const [key, timestamp] of recentIncomingTexts.entries()) {
-    if (now - timestamp > RECENT_TEXT_TTL_MS) {
-      recentIncomingTexts.delete(key);
-    }
+    if (now - timestamp > RECENT_TEXT_TTL_MS) recentIncomingTexts.delete(key);
   }
-
   for (const [key, value] of recentReplies.entries()) {
-    if (now - value.timestamp > RECENT_TEXT_TTL_MS) {
-      recentReplies.delete(key);
-    }
+    if (now - value.timestamp > RECENT_TEXT_TTL_MS) recentReplies.delete(key);
   }
 }
 
@@ -52,7 +47,6 @@ function buildEventKey(
 ) {
   const mid = event.message?.mid?.trim();
   if (mid) return `${platform}:mid:${mid}`;
-
   const normalizedText = (event.message?.text || "").trim().toLowerCase();
   return `${platform}:fallback:${senderId}:${normalizedText}`;
 }
@@ -84,7 +78,6 @@ async function handleMessage(
   platform: Platform,
   senderId: string,
   text: string,
-  igUserId?: string | null,
 ) {
   const limit = rateLimit(
     `${platform === "facebook" ? "fb" : "ig"}:${senderId}`,
@@ -94,17 +87,22 @@ async function handleMessage(
   if (!limit.allowed) {
     const waitMsg = "Түр хүлээнэ үү, дараа оролдоно уу.";
     if (platform === "facebook") await sendTextMessage(senderId, waitMsg);
-    else await sendIgTextMessage(igUserId || "", senderId, waitMsg);
+    else await sendIgTextMessage(senderId, waitMsg);
     return;
   }
 
-  if (platform === "facebook") await sendTypingOn(senderId);
+  // Show typing indicator on both platforms
+  if (platform === "facebook") {
+    await sendTypingOn(senderId).catch(() => {});
+  } else {
+    await sendIgTypingOn(senderId).catch(() => {});
+  }
 
   const { systemPrompt, business } = await readBusinessData();
   const sessionId = `${platform}:${senderId}`;
   const history = getHistory(sessionId);
-  const prompt = buildPrompt({
-    systemPrompt: systemPrompt || "You are a Mongolian AI receptionist.",
+  const { system, messages } = buildMessages({
+    systemPrompt: systemPrompt || "You are a friendly Mongolian AI receptionist.",
     business: business || {},
     history,
     userText: text,
@@ -113,8 +111,9 @@ async function handleMessage(
   let aiReply = "Сайн байна уу!";
 
   try {
-    aiReply = await askOpenAI(prompt);
-  } catch {
+    aiReply = await askOpenAI(system, messages);
+  } catch (err) {
+    console.error("OpenAI call failed:", err);
     aiReply = "Уучлаарай, систем түр алдаатай байна.";
   }
 
@@ -133,7 +132,7 @@ async function handleMessage(
   recentReplies.set(recentReplyKey, { text: safeReply, timestamp: Date.now() });
 
   if (platform === "facebook") await sendTextMessage(senderId, safeReply);
-  else await sendIgTextMessage(igUserId || "", senderId, safeReply);
+  else await sendIgTextMessage(senderId, safeReply);
 }
 
 export default async function handler(
@@ -168,6 +167,7 @@ export default async function handler(
             const senderId = event.sender.id;
             const text = (event.message.text || "").trim();
             if (!text) continue;
+
             const eventKey = buildEventKey(platform, senderId, event);
             if (!markEventProcessed(eventKey)) {
               console.log("Skipping duplicate webhook event", { platform, eventKey });
@@ -175,12 +175,6 @@ export default async function handler(
             }
             if (!markRecentIncomingText(platform, senderId, text)) {
               console.log("Skipping repeated inbound text", { platform, senderId });
-              continue;
-            }
-
-            const igUserId = platform === "instagram" ? entry.id : undefined;
-            if (platform === "instagram" && !igUserId) {
-              console.error("Instagram entry.id missing; cannot reply.");
               continue;
             }
 
@@ -195,7 +189,7 @@ export default async function handler(
 
             activeConversations.add(conversationKey);
             try {
-              await handleMessage(platform, senderId, text, igUserId);
+              await handleMessage(platform, senderId, text);
             } finally {
               activeConversations.delete(conversationKey);
             }

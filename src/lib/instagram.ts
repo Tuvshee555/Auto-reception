@@ -1,21 +1,19 @@
 import fetch from "node-fetch";
 
-const IG_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+const IG_TOKEN =
+  process.env.INSTAGRAM_PAGE_ACCESS_TOKEN ||
+  process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
 function requireToken() {
-  if (!IG_TOKEN) throw new Error("FACEBOOK_PAGE_ACCESS_TOKEN not set");
+  if (!IG_TOKEN) throw new Error("INSTAGRAM_PAGE_ACCESS_TOKEN not set");
   return IG_TOKEN;
 }
 
-export async function sendTextMessage(
-  igUserId: string,
-  recipientId: string,
-  text: string,
-) {
+export async function sendTextMessage(recipientId: string, text: string) {
   const token = requireToken();
 
   const res = await fetch(
-    `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`,
+    `https://graph.facebook.com/v21.0/me/messages?access_token=${token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -32,4 +30,25 @@ export async function sendTextMessage(
     throw new Error(`Instagram send failed: ${res.status} ${body}`);
   }
 }
-// 
+
+export async function sendTypingOn(recipientId: string) {
+  const token = requireToken();
+
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/me/messages?access_token=${token}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        sender_action: "typing_on",
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    // Typing indicator failure is non-critical — log and continue
+    const body = await res.text().catch(() => "");
+    console.warn(`Instagram typing_on failed: ${res.status} ${body}`);
+  }
+}

@@ -32,7 +32,6 @@ export function sanitizeAssistantReply(text: string) {
       if (!normalizedSentence || seenSentences.has(normalizedSentence)) continue;
       seenSentences.add(normalizedSentence);
       uniqueSentences.push(sentence);
-      if (uniqueSentences.length >= 3) break;
     }
 
     if (uniqueSentences.length) {
